@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28307.705
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Indulj.Ff3", "Indulj.Ff3\Indulj.Ff3.csproj", "{C5AB3020-9793-4907-BA9F-96BCD3099F3E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Indulj.Ff3.Tests", "Indulj.Ff3.Tests\Indulj.Ff3.Tests.csproj", "{0A61FF89-3923-4FC1-A1B7-3EB19EE9FADB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{C5AB3020-9793-4907-BA9F-96BCD3099F3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C5AB3020-9793-4907-BA9F-96BCD3099F3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C5AB3020-9793-4907-BA9F-96BCD3099F3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A61FF89-3923-4FC1-A1B7-3EB19EE9FADB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A61FF89-3923-4FC1-A1B7-3EB19EE9FADB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A61FF89-3923-4FC1-A1B7-3EB19EE9FADB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A61FF89-3923-4FC1-A1B7-3EB19EE9FADB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
