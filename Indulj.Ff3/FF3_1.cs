@@ -15,7 +15,7 @@ namespace Indulj.Ff3
     /// <remarks>
     /// https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-38Gr1-draft.pdf
     /// </remarks>
-    public class FF3_1
+    public partial class FF3_1
     {
         // NIST SP 800-38G Revision 1 Draft
         readonly uint radix;
