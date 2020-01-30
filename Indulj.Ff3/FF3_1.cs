@@ -42,10 +42,11 @@ namespace Indulj.Ff3
         public FF3_1(SymmetricAlgorithm ciph, int radix, int minlen, int maxlen)
         {
             if (ciph == null) throw new ArgumentNullException(nameof(ciph));
-            if (ciph.BlockSize != 128) throw new ArgumentException("Underlying cipher block size must be 128 bits");
+            if (ciph.BlockSize > 128) throw new ArgumentException("Underlying cipher block size must be 128 bits");
             if (radix < MIN_RADIX || radix > MAX_RADIX) throw new ArgumentOutOfRangeException(nameof(radix), radix, "Invalid radix");
             if (minlen < 2 || minlen > maxlen) throw new ArgumentException(nameof(minlen) + " must be greater than or equal to 2, and less than or equal to " + nameof(maxlen));
-            if (maxlen > 2 * Math.Floor(96 * Math.Log(2, radix)))
+            var f_bits = (ciph.BlockSize - 32);
+            if (maxlen > 2 * Math.Floor(f_bits * Math.Log(2, radix)))
                 throw new ArgumentException(nameof(maxlen) + " is too large for the given radix", nameof(maxlen));
             if (Math.Pow(radix, minlen) < 1e6)
                 throw new ArgumentException(nameof(minlen) + " is too small", nameof(minlen));
@@ -391,8 +392,15 @@ namespace Indulj.Ff3
             }
             public void CopyTo(byte[] dest, int offset)
             {
-                CopyTo(dest, High, offset);
-                CopyTo(dest, Mid, offset + 4);
+                if (dest.Length - offset >= 12)
+                {
+                    CopyTo(dest, High, offset);
+                    CopyTo(dest, Mid, offset + 4);
+                }
+                else
+                {
+                    if (High != 0 || Mid != 0) throw new OverflowException();
+                }
                 CopyTo(dest, Low, offset + 8);
             }
         }
@@ -663,7 +671,7 @@ namespace Indulj.Ff3
                 if (X[i] >= radix) throw new ArgumentException("Value contains invalid symbols", nameof(input));
             using (var ciphTransform = ciph.CreateEncryptor())
             {
-                var P = new byte[4 + 12];
+                var P = new byte[/*4 + 12*/ ciph.BlockSize / 8];
                 var S = new byte[P.Length];
                 try
                 {
