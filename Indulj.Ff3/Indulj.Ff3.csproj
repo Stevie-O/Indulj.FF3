@@ -13,6 +13,7 @@
     <DefineConstants>TRACE;HAVE_SPAN</DefineConstants>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile>C:\Users\Stevie-O\projects\Indulj.Ff3\Indulj.Ff3\Indulj.Ff3.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

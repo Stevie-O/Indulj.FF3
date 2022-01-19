@@ -22,6 +22,27 @@ namespace Indulj.Ff3
         readonly int minlen, maxlen;
         SymmetricAlgorithm ciph;
 
+        /// <summary>
+        /// Gets the radix (the number of symbols in the alphabet to be encrypted)
+        /// </summary>
+        public int Radix => (int)radix;
+
+        /// <summary>
+        /// Gets the length of the shortest string that can be encrypted or decrypted.
+        /// </summary>
+        public int MinimumBlockLength => minlen;
+
+        /// <summary>
+        /// Gets the length of the longest string that can be encrypted or decrypted.
+        /// </summary>
+        public int MaximumBlockLength => maxlen;
+
+        /// <summary>
+        /// Use this constant for the 'minlen' and/or 'maxlen' parameters in the constructor to use the smallest/largest valid value
+        /// </summary>
+        public const int AutoLength = -1;
+
+
         const int MIN_RADIX = 2;
         const int MAX_RADIX = 65536;
 
@@ -39,18 +60,28 @@ namespace Indulj.Ff3
         /// <exception cref="ArgumentException"><paramref name="minlen"/> is too small for the specified <paramref name="radix"/>.</exception>
         /// <exception cref="ArgumentException"><paramref name="minlen"/> is greater than <paramref name="maxlen"/>.</exception>
         /// <exception cref="ArgumentException"><paramref name="maxlen"/> is too large for the specified <paramref name="radix"/>.</exception>
-        public FF3_1(SymmetricAlgorithm ciph, int radix, int minlen, int maxlen)
+        public FF3_1(SymmetricAlgorithm ciph, int radix, int minlen = AutoLength, int maxlen = AutoLength)
         {
             if (ciph == null) throw new ArgumentNullException(nameof(ciph));
             if (ciph.BlockSize > 128) throw new ArgumentException("Underlying cipher block size must be 128 bits");
-            if (radix < MIN_RADIX || radix > MAX_RADIX) throw new ArgumentOutOfRangeException(nameof(radix), radix, "Invalid radix");
-            if (minlen < 2 || minlen > maxlen) throw new ArgumentException(nameof(minlen) + " must be greater than or equal to 2, and less than or equal to " + nameof(maxlen));
+
             var f_bits = (ciph.BlockSize - 32);
-            if (maxlen > 2 * Math.Floor(f_bits * Math.Log(2, radix)))
+            int maxValidMaxlen = (int)(2 * Math.Floor(f_bits * Math.Log(2, radix)));
+
+            if (radix < MIN_RADIX || radix > MAX_RADIX) throw new ArgumentOutOfRangeException(nameof(radix), radix, "Invalid radix");
+            if (maxlen == AutoLength)
+                maxlen = maxValidMaxlen;
+            else if (maxlen > maxValidMaxlen)
                 throw new ArgumentException(nameof(maxlen) + " is too large for the given radix", nameof(maxlen));
-            if (Math.Pow(radix, minlen) < 1e6)
+
+            if (minlen == AutoLength)
+                minlen = Math.Max(2, (int)Math.Ceiling(6 / Math.Log10(radix)));
+            // this 'else' can come back when I've proven that 'auto' answer is always correct
+            /*else */if (Math.Pow(radix, minlen) < 1e6)
                 throw new ArgumentException(nameof(minlen) + " is too small", nameof(minlen));
 
+            if (minlen < 2 || minlen > maxlen) throw new ArgumentException(nameof(minlen) + " must be greater than or equal to 2, and less than or equal to " + nameof(maxlen));
+            
             this.radix = (uint)radix;
             this.minlen = minlen;
             this.maxlen = maxlen;
@@ -396,12 +427,13 @@ namespace Indulj.Ff3
                 {
                     CopyTo(dest, High, offset);
                     CopyTo(dest, Mid, offset + 4);
+                    offset += 8;
                 }
                 else
                 {
                     if (High != 0 || Mid != 0) throw new OverflowException();
                 }
-                CopyTo(dest, Low, offset + 8);
+                CopyTo(dest, Low, offset);
             }
         }
 
@@ -501,12 +533,22 @@ namespace Indulj.Ff3
 
         static Ff3Accumulator Num(byte[] x, Ff3Divisor modulus)
         {
-            var n = new Ff3DivisionAccumulator(
-                ExtractUint(x, 0),
-                ExtractUint(x, 4),
-                ExtractUint(x, 8),
-                ExtractUint(x, 12)
-                );
+            var n =
+                x.Length == 8 ?
+                    new Ff3DivisionAccumulator(
+                            0,
+                            0,
+                            ExtractUint(x, 0),
+                            ExtractUint(x, 4)
+                    )
+                : 
+                    new Ff3DivisionAccumulator(
+                        ExtractUint(x, 0),
+                        ExtractUint(x, 4),
+                        ExtractUint(x, 8),
+                        ExtractUint(x, 12)
+                    )
+                ;
             Array.Clear(x, 0, x.Length);
 
             using (n)
@@ -560,6 +602,16 @@ namespace Indulj.Ff3
                 dest[dest.Length - i] = src[i];
             }
         }
+
+        /// <summary>
+        /// Reverses the order of the bytes in the passed array, and returns that array as a convenience.
+        /// </summary>
+        /// <param name="key">The array whose bytes are to be reversed.</param>
+        /// <remarks>
+        /// For reasons beyond my comprehension, BPS definition reverses the byte order of the encryption key before
+        /// passing it to the underlying cipher algorithm.  For some reason.
+        /// </remarks>
+        public static byte[] ReverseKey(byte[] key) { Reverse(key); return key; }
 
         internal static void Reverse<T>(T[] x)
         {
@@ -838,7 +890,7 @@ namespace Indulj.Ff3
                 if (X[i] >= radix) throw new ArgumentException("Value contains invalid symbols", nameof(input));
             using (var ciphTransform = ciph.CreateEncryptor())
             {
-                var P = new byte[4 + 12];
+                var P = new byte[/*4 + 12*/ ciph.BlockSize / 8];
                 var S = new byte[P.Length];
                 try
                 {
