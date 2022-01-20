@@ -9,7 +9,7 @@ namespace Indulj.Ff3
         // interesting limitation: you cannot use a Span in a ValueTuple (probably because there's no way to prevent the
         // ValueTuple from being boxed)
 
-        public static (ushort[] raw_value, (int offset, char value)[] formattingChars) DecodeString(string value, string charset)
+        public static (ushort[] raw_value, (int offset, char value)[] formattingChars) DecodeString(ReadOnlySpan<char> value, string charset)
         {
             var formattingChars = new List<(int offset, char value)>();
             var raw_value = new List<ushort>(value.Length);
@@ -34,8 +34,17 @@ namespace Indulj.Ff3
 
         public static string EncodeString(ushort[] raw_value, string charset, Span<(int offset, char ch)> formattingChars)
         {
+            var len = raw_value.Length + formattingChars.Length;
+            //Span<char> buffer = stackalloc char[len];
+            var buffer = new char[len];
+            EncodeString(raw_value, charset, formattingChars, buffer);
+            return new string(buffer);
+        }
+
+        public static int EncodeString(ushort[] raw_value, string charset, Span<(int offset, char ch)> formattingChars, Span<char> dest)
+        {
             var original_length = raw_value.Length + formattingChars.Length;
-            var sb = new StringBuilder(original_length);
+            int output_offset = 0;
             int next_fc_offset = (formattingChars.Length > 0 ? formattingChars[0].offset : original_length);
 
             for (int i = 0, j = 0; i < original_length;)
@@ -43,7 +52,7 @@ namespace Indulj.Ff3
                 while (i == next_fc_offset)
                 {
                     i++;
-                    sb.Append(formattingChars[0].ch);
+                    dest[output_offset++] = formattingChars[0].ch;
                     formattingChars = formattingChars.Slice(1);
                     if (formattingChars.Length > 0)
                     {
@@ -58,11 +67,11 @@ namespace Indulj.Ff3
 
                 for (; i < next_fc_offset; i++)
                 {
-                    sb.Append(charset[raw_value[j++]]);
+                    dest[output_offset++] = charset[raw_value[j++]];
                 }
             }
 
-            return sb.ToString();
+            return output_offset;
         }
 
     }

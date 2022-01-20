@@ -13,11 +13,34 @@ namespace Indulj.Ff3
         /// <param name="value">Value</param>
         /// <param name="charset">Character set</param>
         /// <returns>The encrypted string</returns>
-        public string Encrypt(byte[] tweak, string value, string charset)
+        public string Encrypt(byte[] tweak, string value, string charset) => Encrypt(tweak, value.AsSpan(), charset);
+
+        /// <summary>
+        /// Encrypts a string
+        /// </summary>
+        /// <param name="tweak">Optional tweak</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <returns>The encrypted string</returns>
+        public string Encrypt(byte[] tweak, ReadOnlySpan<char> value, string charset)
         {
             var (raw, fmt) = Ff3Helpers.DecodeString(value, charset);
-            Encrypt(tweak, raw, raw);
+            Encrypt(tweak, raw);
             return Ff3Helpers.EncodeString(raw, charset, fmt);
+        }
+
+        /// <summary>
+        /// Encrypts a string
+        /// </summary>
+        /// <param name="tweak">Optional tweak</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <param name="dest">Buffer to receive encrypted string (must be at least as large as <paramref name="value"/>)</param>
+        public void Encrypt(byte[] tweak, ReadOnlySpan<char> value, string charset, Span<char> dest)
+        {
+            var (raw, fmt) = Ff3Helpers.DecodeString(value, charset);
+            Encrypt(tweak, raw);
+            Ff3Helpers.EncodeString(raw, charset, fmt, dest);
         }
 
         /// <summary>
@@ -28,11 +51,36 @@ namespace Indulj.Ff3
         /// <param name="charset">Character set</param>
         /// <returns>The decrypted string</returns>
         public string Decrypt(byte[] tweak, string value, string charset)
+            => Decrypt(tweak, value.AsSpan(), charset);
+
+        /// <summary>
+        /// Decrypts a string
+        /// </summary>
+        /// <param name="tweak">Optional tweak</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <returns>The decrypted string</returns>
+        public string Decrypt(byte[] tweak, ReadOnlySpan<char> value, string charset)
         {
             var (raw, fmt) = Ff3Helpers.DecodeString(value, charset);
-            Decrypt(tweak, raw, raw);
+            Decrypt(tweak, raw);
             return Ff3Helpers.EncodeString(raw, charset, fmt);
         }
+
+        /// <summary>
+        /// Decrypts a string
+        /// </summary>
+        /// <param name="tweak">Optional tweak</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <param name="dest">Buffer to receive decrypted string (must be at least as large as <paramref name="value"/>)</param>
+        public void Decrypt(byte[] tweak, ReadOnlySpan<char> value, string charset, Span<char> dest)
+        {
+            var (raw, fmt) = Ff3Helpers.DecodeString(value, charset);
+            Decrypt(tweak, raw);
+            Ff3Helpers.EncodeString(raw, charset, fmt, dest);
+        }
+
 
         ushort RadixAdd(ushort a, ushort b)
         {
@@ -59,13 +107,45 @@ namespace Indulj.Ff3
         /// For input strings that are not longer than the "maxlen" property passed to the constructor, this method is equivalent to <see cref="Encrypt(byte[], string, string)"/>.
         /// For longer strings, this follows the weird CBC-like process described in the original BPS whitepaper, which was _not_ brought into the NIST FF3 standard.
         /// </remarks>
-        public string BpsEncrypt(byte[] tweak, string value, string charset)
+        public string BpsEncrypt(byte[] tweak, string value, string charset) => BpsEncrypt(tweak, value.AsSpan(), charset);
+
+        /// <summary>
+        /// Encrypts a string according to Algorithm 3 of the original BPS whitepaper.
+        /// </summary>
+        /// <param name="tweak">Optional tweak. NOTE that the contents of this array are modified during execution.</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <returns>The encrypted string</returns>
+        /// <remarks>
+        /// For input strings that are not longer than the "maxlen" property passed to the constructor, this method is equivalent to <see cref="Encrypt(byte[], string, string)"/>.
+        /// For longer strings, this follows the weird CBC-like process described in the original BPS whitepaper, which was _not_ brought into the NIST FF3 standard.
+        /// </remarks>
+        public string BpsEncrypt(byte[] tweak, ReadOnlySpan<char> value, string charset)
+        {
+            var dest = new char[value.Length];
+            BpsEncrypt(tweak, value, charset, dest);
+            return new string(dest);
+        }
+
+        /// <summary>
+        /// Encrypts a string according to Algorithm 3 of the original BPS whitepaper.
+        /// </summary>
+        /// <param name="tweak">Optional tweak. NOTE that the contents of this array are modified during execution.</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <param name="dest">Buffer to receive encrypted string (must be at least as large as <paramref name="value"/>)</param>
+        /// <remarks>
+        /// For input strings that are not longer than the "maxlen" property passed to the constructor, this method is equivalent to <see cref="Encrypt(byte[], string, string)"/>.
+        /// For longer strings, this follows the weird CBC-like process described in the original BPS whitepaper, which was _not_ brought into the NIST FF3 standard.
+        /// </remarks>
+        public void BpsEncrypt(byte[] tweak, ReadOnlySpan<char> value, string charset, Span<char> dest)
         {
             var (X, fmt) = Ff3Helpers.DecodeString(value, charset);
             if (X.Length <= maxlen)
             {
-                Encrypt(tweak, X, X);
-                return Ff3Helpers.EncodeString(X, charset, fmt);
+                Encrypt(tweak, X);
+                Ff3Helpers.EncodeString(X, charset, fmt, dest);
+                return;
             }
 
             this.EnableFF3TweakSupport = true;
@@ -88,7 +168,7 @@ namespace Indulj.Ff3
                         tmp_block[idx] = RadixAdd(tmp_block[idx], Y[idx + c - maxlen]);
                     }
                 }
-                Encrypt(tweak, tmp_block, tmp_block);
+                Encrypt(tweak, tmp_block);
                 tmp_block.CopyTo(Y, c);
                 tweak[1] ^= i;
                 tweak[5] ^= i;
@@ -108,14 +188,14 @@ namespace Indulj.Ff3
                     Y[idx] = RadixAdd(Y[idx], Y[idx - maxlen]);
 
                 Array.Copy(Y, Y.Length - maxlen, tmp_block, 0, maxlen);
-                Encrypt(tweak, tmp_block, tmp_block);
+                Encrypt(tweak, tmp_block);
                 tmp_block.CopyTo(Y, Y.Length - maxlen);
 
                 tweak[1] ^= i;
                 tweak[5] ^= i;
             }
 
-            return Ff3Helpers.EncodeString(Y, charset, fmt);
+            Ff3Helpers.EncodeString(Y, charset, fmt, dest);
         }
 
         /// <summary>
@@ -130,12 +210,45 @@ namespace Indulj.Ff3
         /// For longer strings, this follows the weird CBC-like process described in the original BPS whitepaper, which was _not_ brought into the NIST FF3 standard.
         /// </remarks>
         public string BpsDecrypt(byte[] tweak, string value, string charset)
+            => BpsDecrypt(tweak, value.AsSpan(), charset);
+
+        /// <summary>
+        /// Decrypts a string according to Algorithm 4 of the original BPS whitepaper.
+        /// </summary>
+        /// <param name="tweak">Optional tweak. NOTE that the contents of this array are modified during execution.</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <returns>The decrypted string</returns>
+        /// <remarks>
+        /// For input strings that are not longer than the "maxlen" property passed to the constructor, this method is equivalent to <see cref="Decrypt(byte[], string, string)"/>.
+        /// For longer strings, this follows the weird CBC-like process described in the original BPS whitepaper, which was _not_ brought into the NIST FF3 standard.
+        /// </remarks>
+        public string BpsDecrypt(byte[] tweak, ReadOnlySpan<char> value, string charset)
+        {
+            var dest = new char[value.Length];
+            BpsDecrypt(tweak, value, charset, dest);
+            return new string(dest);
+        }
+
+        /// <summary>
+        /// Decrypts a string according to Algorithm 4 of the original BPS whitepaper.
+        /// </summary>
+        /// <param name="tweak">Optional tweak. NOTE that the contents of this array are modified during execution.</param>
+        /// <param name="value">Value</param>
+        /// <param name="charset">Character set</param>
+        /// <param name="dest">Buffer to receive decrypted string (must be at least as large as <paramref name="value"/>)</param>
+        /// <remarks>
+        /// For input strings that are not longer than the "maxlen" property passed to the constructor, this method is equivalent to <see cref="Decrypt(byte[], string, string)"/>.
+        /// For longer strings, this follows the weird CBC-like process described in the original BPS whitepaper, which was _not_ brought into the NIST FF3 standard.
+        /// </remarks>
+        public void BpsDecrypt(byte[] tweak, ReadOnlySpan<char> value, string charset, Span<char> dest)
         {
             var (X, fmt) = Ff3Helpers.DecodeString(value, charset);
             if (X.Length <= maxlen)
             {
-                Decrypt(tweak, X, X);
-                return Ff3Helpers.EncodeString(X, charset, fmt);
+                Decrypt(tweak, X);
+                Ff3Helpers.EncodeString(X, charset, fmt, dest);
+                return;
             }
 
             this.EnableFF3TweakSupport = true;
@@ -156,7 +269,7 @@ namespace Indulj.Ff3
                 // we decrypt a "full block" that overlaps the preceding block
                 // this requires some finagling
                 Array.Copy(Y, Y.Length - maxlen, tmp_block, 0, maxlen);
-                Decrypt(tweak, tmp_block, tmp_block);
+                Decrypt(tweak, tmp_block);
                 // oh this is nuts
                 for (int idx = 1; idx <= rest; idx++)
                 {
@@ -183,13 +296,13 @@ namespace Indulj.Ff3
                         tmp_block[idx] = RadixSub(tmp_block[idx], Y[idx + c - maxlen]);
                     }
                 }
-                Decrypt(tweak, tmp_block, tmp_block);
+                Decrypt(tweak, tmp_block);
                 tmp_block.CopyTo(Y, c);
                 tweak[1] ^= i;
                 tweak[5] ^= i;
             }
 
-            return Ff3Helpers.EncodeString(Y, charset, fmt);
+            Ff3Helpers.EncodeString(Y, charset, fmt, dest );
         }
     }
 }

@@ -19,7 +19,7 @@ namespace Indulj.Ff3.Tests
         public void TestRoundTripDigits(string s, ushort[] sequence)
         {
             const string digits = "0123456789";
-            var (raw, fmt) = Ff3Helpers.DecodeString(s, digits);
+            var (raw, fmt) = Ff3Helpers.DecodeString(s.AsSpan(), digits);
             CollectionAssert.AreEqual(sequence, raw, "Decoded data mismatch");
             var result = Ff3Helpers.EncodeString(raw, digits, fmt);
             Assert.AreEqual(s, result, "Re-encoded data mismatch");

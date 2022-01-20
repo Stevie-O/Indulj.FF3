@@ -672,29 +672,10 @@ namespace Indulj.Ff3
         }
 
         /// <summary>
-        /// Encrypts a message.
-        /// </summary>
-        /// <param name="tweak">Optional "tweak" value</param>
-        /// <param name="input">The plaintext to be enciphered (<strong>THE CONTENTS OF THIS BUFFER ARE DESTROYED)</strong></param>
-        /// <remarks></remarks>
-        /// <returns>The resulting ciphertext.</returns>
-        /// <exception cref="ArgumentException">The length of <paramref name="tweak"/> is not valid.</exception>
-        /// <exception cref="ArgumentException"><paramref name="input"/> is too short or too long.</exception>
-        /// <exception cref="ArgumentException"><paramref name="input"/> contains values greater than or equal to the radix supplied in the constructor.
-        /// </exception>
-        public ushort[] Encrypt(byte[] tweak, ushort[] input)
-        {
-            ushort[] result = new ushort[input.Length];
-            Encrypt(tweak, input, result);
-            return result;
-        }
-
-        /// <summary>
         /// Encrypts a value.
         /// </summary>
         /// <param name="tweak">Optional "tweak" value</param>
-        /// <param name="input">The plaintext to be enciphered (<strong>THE CONTENTS OF THIS BUFFER ARE DESTROYED)</strong></param>
-        /// <param name="output">The output buffer that receives the ciphertext.  (This may be the same buffer as <paramref name="input"/>.)</param>
+        /// <param name="input">Upon entry, the plaintext to be enciphered.  Upon return, contains the encrypted output.</param>
         /// <remarks></remarks>
         /// <returns>The resulting ciphertext.</returns>
         /// <exception cref="ArgumentException">The length of <paramref name="tweak"/> is not valid.</exception>
@@ -702,10 +683,12 @@ namespace Indulj.Ff3
         /// <exception cref="ArgumentException"><paramref name="input"/> contains values greater than or equal to the radix supplied in the constructor.
         /// <exception cref="ArgumentNullException"><paramref name="output"/> is too short to hold the output.</exception>
         /// </exception>
-        public void Encrypt(byte[] tweak, ushort[] input, ushort[] output)
+        public void Encrypt(byte[] tweak, ushort[] input)
         {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            //if (output == null) throw new ArgumentNullException(nameof(output));
             if (input == null) throw new ArgumentNullException(nameof(input));
+            var output = input;
+
             if (output.Length < input.Length) throw new ArgumentException("Output buffer is too small to hold ciphertext", nameof(output));
 
             var T = tweak;
@@ -838,29 +821,10 @@ namespace Indulj.Ff3
         public bool EnableFF3TweakSupport { get; set; }
 
         /// <summary>
-        /// Decrypts a message.
-        /// </summary>
-        /// <param name="tweak">Optional "tweak" value</param>
-        /// <param name="input">The value to be deciphered (<strong>THE CONTENTS OF THIS BUFFER ARE DESTROYED)</strong></param>
-        /// <remarks></remarks>
-        /// <returns>The resulting plaintext.</returns>
-        /// <exception cref="ArgumentException">The length of <paramref name="tweak"/> is not valid.</exception>
-        /// <exception cref="ArgumentException"><paramref name="input"/> is too short or too long.</exception>
-        /// <exception cref="ArgumentException"><paramref name="input"/> contains values greater than or equal to the radix supplied in the constructor.
-        /// </exception>
-        public ushort[] Decrypt(byte[] tweak, ushort[] input)
-        {
-            ushort[] result = new ushort[input.Length];
-            Decrypt(tweak, input, result);
-            return result;
-        }
-
-        /// <summary>
         /// Decrypts a value.
         /// </summary>
         /// <param name="tweak">Optional "tweak" value</param>
-        /// <param name="input">The value to be deciphered (<strong>THE CONTENTS OF THIS BUFFER ARE DESTROYED)</strong></param>
-        /// <param name="output">The output buffer that receives the plaintext.  (This may be the same buffer as <paramref name="input"/>.)</param>
+        /// <param name="input">Upon entry, the plaintext to be enciphered.  Upon return, contains the encrypted output.</param>
         /// <remarks></remarks>
         /// <returns>The resulting ciphertext.</returns>
         /// <exception cref="ArgumentException">The length of <paramref name="tweak"/> is not valid.</exception>
@@ -868,10 +832,10 @@ namespace Indulj.Ff3
         /// <exception cref="ArgumentException"><paramref name="input"/> contains values greater than or equal to the radix supplied in the constructor.
         /// <exception cref="ArgumentNullException"><paramref name="output"/> is too short to hold the output.</exception>
         /// </exception>
-        public void Decrypt(byte[] tweak, ushort[] input, ushort[] output)
+        public void Decrypt(byte[] tweak, ushort[] input)
         {
-            if (output == null) throw new ArgumentNullException(nameof(output));
             if (input == null) throw new ArgumentNullException(nameof(input));
+            var output = input;
             if (output.Length < input.Length) throw new ArgumentException("Output buffer is too small to hold ciphertext", nameof(output));
 
             var T = tweak;

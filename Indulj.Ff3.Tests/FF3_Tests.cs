@@ -126,9 +126,9 @@ new NistFf3Sample("Sample #15", "EF 43 59 D8 D5 80 AA 4F 7F 03 6D 6F 04 FC 6A 94
                         ;
                     */
                 if (operation == CipherOperation.Encrypt)
-                    ff3.Encrypt(tweakBytes, ptSymbolsInput, ctSymbols);
+                    ff3.Encrypt(tweakBytes, ctSymbols);
                 else
-                    ff3.Decrypt(tweakBytes, ptSymbolsInput, ctSymbols);
+                    ff3.Decrypt(tweakBytes, ctSymbols);
                 var ct = string.Join("", ctSymbols.Select(sym => charset[sym]));
                 //ct.Dump("CT");
                 return ct;
